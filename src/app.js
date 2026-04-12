@@ -3,12 +3,19 @@ const express = require("express");
 const mongoose = require("mongoose");
 const routes = require("./routes");
 
+const { executarBot } = require("./services/bot");
+
 const app = express();
 app.use(express.json());
 
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("Mongo conectado"))
+  .then(() => {
+    console.log("Mongo conectado");
+
+    // 🚀 inicia o bot só depois do banco conectar
+    executarBot();
+  })
   .catch((err) => console.error("Erro Mongo:", err));
 
 app.use("/", routes);
