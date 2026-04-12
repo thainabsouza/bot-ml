@@ -1,0 +1,34 @@
+services:
+  app:
+    build: .
+    command: node src/app.js
+    container_name: ml-app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongo
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+
+  worker:
+    build: .
+    command: node src/workers/botWorker.js
+    depends_on:
+      - mongo
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+
+  mongo:
+    image: mongo:6
+    container_name: ml-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
