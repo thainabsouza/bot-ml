@@ -11,16 +11,19 @@ services:
       - .env
     volumes:
       - .:/app
+      - /app/node_modules # 👈 IMPORTANTE
 
   worker:
     build: .
     command: node src/workers/botWorker.js
+    container_name: ml-worker
     depends_on:
       - mongo
     env_file:
       - .env
     volumes:
       - .:/app
+      - /app/node_modules # 👈 IMPORTANTE
 
   mongo:
     image: mongo:6

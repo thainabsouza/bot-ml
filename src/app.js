@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const routes = require("./routes");
 
 const { executarBot } = require("./services/bot");
+const { loop } = require("./services/bot");
 
 const app = express();
 app.use(express.json());
@@ -14,7 +15,8 @@ mongoose
     console.log("Mongo conectado");
 
     // 🚀 inicia o bot só depois do banco conectar
-    executarBot();
+    //executarBot();
+    loop();
   })
   .catch((err) => console.error("Erro Mongo:", err));
 

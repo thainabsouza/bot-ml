@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const processingCodes = new Set();
 
-const { executarBot } = require("../services/bot");
+//const { executarBot } = require("../services/bot");
 const { trocarCodePorToken, getValidToken } = require("../services/auth");
 
 const Question = require("../models/Question");
@@ -62,7 +62,7 @@ router.get("/auth/callback", async (req, res) => {
 });
 
 // 🤖 EXECUTAR BOT
-router.get("/run", async (req, res) => {
+/*router.get("/run", async (req, res) => {
   try {
     await executarBot();
     res.send("🤖 Bot executado com sucesso!");
@@ -70,7 +70,7 @@ router.get("/run", async (req, res) => {
     console.error(err.message);
     res.status(500).send(err.message);
   }
-});
+});*/
 
 // 👤 DEBUG - VER USUÁRIO SALVO
 router.get("/me", async (req, res) => {
@@ -103,6 +103,11 @@ router.get("/auth/login", (req, res) => {
   const url = `https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=${process.env.CLIENT_ID}&redirect_uri=${process.env.REDIRECT_URI}`;
 
   res.redirect(url);
+});
+const { botStatus } = require("../services/bot");
+
+router.get("/bot/status", (req, res) => {
+  res.json(botStatus);
 });
 
 module.exports = router;

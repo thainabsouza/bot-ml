@@ -9,7 +9,7 @@ async function listarPerguntas(conta) {
   const limit = 50;
 
   while (true) {
-    const url = `https://api.mercadolibre.com/questions/search?seller_id=${conta.mercadoLivre.userId}&limit=${limit}&offset=${offset}`;
+    const url = `https://api.mercadolibre.com/questions/search?seller_id=${conta.mercadoLivre.userId}&limit=${limit}&offset=${offset}&sort=date_created_desc`;
 
     const res = await axios.get(url, {
       headers: { Authorization: `Bearer ${token}` },
