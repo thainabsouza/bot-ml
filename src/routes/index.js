@@ -6,7 +6,7 @@ const processingCodes = new Set();
 const { trocarCodePorToken, getValidToken } = require("../services/auth");
 
 const Question = require("../models/Question");
-const Conta = require("../models/Conta");
+const Conta = require("../models/conta");
 
 require("dotenv").config();
 

@@ -1,5 +1,5 @@
 const { listarPerguntas, responder } = require("./mercadoLivre");
-const Conta = require("../models/Conta");
+const Conta = require("../models/conta");
 const { isHorarioPermitido } = require("../utils/time");
 const { acquireLock, releaseLock } = require("../utils/lock");
 

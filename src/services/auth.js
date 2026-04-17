@@ -1,7 +1,7 @@
 const axios = require("axios");
 const qs = require("querystring");
 const fs = require("fs");
-const Conta = require("../models/Conta");
+const Conta = require("../models/conta");
 
 const TOKEN_PATH = "token.json";
 
