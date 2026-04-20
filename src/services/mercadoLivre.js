@@ -4,33 +4,19 @@ const { getValidToken } = require("./auth");
 async function listarPerguntas(conta) {
   const token = await getValidToken(conta);
 
-  let todasPerguntas = [];
-  let offset = 0;
-  const limit = 50;
+  const limit = 10;
 
-  while (true) {
-    const url = `https://api.mercadolibre.com/questions/search?seller_id=${conta.mercadoLivre.userId}&limit=${limit}&offset=${offset}&sort=date_created_desc`;
+  const url = `https://api.mercadolibre.com/questions/search?seller_id=${conta.mercadoLivre.userId}&limit=${limit}&sort=date_created_desc`;
 
-    const res = await axios.get(url, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  const res = await axios.get(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 
-    const perguntas = res.data.questions;
+  const perguntas = res.data.questions;
 
-    if (!perguntas.length) break;
+  console.log("📩 TOTAL PERGUNTAS:", perguntas.length);
 
-    todasPerguntas.push(...perguntas);
-
-    offset += limit;
-
-    // 🔥 proteção pra não explodir
-    if (offset > 200) break;
-  }
-
-  console.log("📩 TOTAL PERGUNTAS:", todasPerguntas.length);
-
-  return todasPerguntas;
-  console.log("🧠 STATUS:", p.id, p.status, p.text);
+  return perguntas;
 }
 
 async function responder(id, texto, conta) {

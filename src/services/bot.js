@@ -118,6 +118,8 @@ async function executarBot() {
 
           // 🔥 atualiza só depois de sucesso
           lastProcessed[conta._id] = dataPergunta;
+
+          await sleep(2000);
         } catch (err) {
           console.log("❌ ERRO ML:", err.response?.data || err.message);
         }
