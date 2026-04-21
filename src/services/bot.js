@@ -98,31 +98,37 @@ async function executarBot() {
         lastProcessed[conta._id] = new Date(0); // início do tempo
       }
 
+      let latestDate = lastProcessed[conta._id];
+
       for (const p of perguntas) {
         if (!isRespondable(p)) continue;
 
         const dataPergunta = new Date(p.date_created);
 
-        // 🔥 ignora antigas
         if (dataPergunta <= lastProcessed[conta._id]) continue;
 
         try {
           const resposta = await gerarResposta(p.text);
           if (!resposta) continue;
 
-          if (!resposta || resposta === "IGNORAR") continue;
-
           await responder(p.id, resposta, conta);
 
           console.log("✅ Respondido:", p.id);
 
-          // 🔥 atualiza só depois de sucesso
-          lastProcessed[conta._id] = dataPergunta;
+          // guarda a mais recente
+          if (!latestDate || dataPergunta > latestDate) {
+            latestDate = dataPergunta;
+          }
 
           await sleep(2000);
         } catch (err) {
           console.log("❌ ERRO ML:", err.response?.data || err.message);
         }
+      }
+
+      // 🔥 atualiza só no final
+      if (latestDate) {
+        lastProcessed[conta._id] = latestDate;
       }
     }
   } catch (err) {
