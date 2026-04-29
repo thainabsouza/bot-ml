@@ -26,7 +26,7 @@ function sleep(ms) {
 async function gerarResposta(pergunta) {
   try {
     const response = await client.responses.create({
-      model: "gpt-5.4-mini",
+      model: "gpt-4.1-mini",
       max_output_tokens: 80,
       input: [
         {
@@ -54,9 +54,13 @@ async function gerarResposta(pergunta) {
       ],
     });
 
-    return response.output_text || "Olá! Pode me dar mais detalhes?";
+    console.log("✅ Resposta IA gerada");
+    const texto =
+      response.output_text || response.output?.[0]?.content?.[0]?.text || null;
+
+    return texto;
   } catch (err) {
-    console.error("❌ IA erro:", err.message);
+    console.error("❌ IA erro:", err.response?.data || err.message);
     return null;
   }
 }
@@ -108,7 +112,7 @@ async function executarBot() {
         if (dataPergunta <= lastProcessed[conta._id]) continue;
 
         try {
-          const resposta = await gerarResposta(p.text);
+          const resposta = await gerarResposta(getText(p));
           if (!resposta) continue;
 
           await responder(p.id, resposta, conta);
@@ -133,7 +137,7 @@ async function executarBot() {
     }
   } catch (err) {
     botStatus.lastError = err.message;
-    console.error("❌ Erro no bot:", err.message);
+    console.error("❌ Erro no bot:", err.response?.data || err.message);
   } finally {
     botStatus.running = false;
   }

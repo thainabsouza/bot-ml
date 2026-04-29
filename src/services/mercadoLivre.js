@@ -20,18 +20,26 @@ async function listarPerguntas(conta) {
 }
 
 async function responder(id, texto, conta) {
+  if (!texto?.trim()) {
+    console.log("❌ Texto inválido");
+    return;
+  }
+
   const token = await getValidToken(conta); // 🔥 CORRETO
 
-  await axios.post(
-    "https://api.mercadolibre.com/answers",
-    {
-      question_id: id,
-      text: texto,
+  const body = {
+    question_id: Number(id),
+    text: texto.trim(),
+  };
+
+  console.log("📤 ENVIANDO:", body);
+
+  await axios.post("https://api.mercadolibre.com/answers", body, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
     },
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    },
-  );
+  });
 }
 
 async function verUsuario(token) {
