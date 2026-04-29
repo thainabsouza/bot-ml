@@ -131,8 +131,6 @@ async function getValidToken(conta) {
     return conta.mercadoLivre.accessToken;
   } catch (err) {
     if (err.response?.status === 401) {
-      console.log("🔄 Token expirado, renovando...");
-
       const res = await axios.post(
         "https://api.mercadolibre.com/oauth/token",
         qs.stringify({
@@ -149,7 +147,11 @@ async function getValidToken(conta) {
       );
 
       conta.mercadoLivre.accessToken = res.data.access_token;
-      conta.mercadoLivre.refreshToken = res.data.refresh_token;
+
+      // ⚠️ MUITO IMPORTANTE
+      if (res.data.refresh_token) {
+        conta.mercadoLivre.refreshToken = res.data.refresh_token;
+      }
 
       await conta.save();
 
@@ -160,8 +162,8 @@ async function getValidToken(conta) {
   }
 }
 
-async function pegarUsuario() {
-  const token = await getAccessToken(); // ✅ correto
+async function pegarUsuario(conta) {
+  const token = await getValidToken(conta);
 
   const res = await axios.get("https://api.mercadolibre.com/users/me", {
     headers: {
