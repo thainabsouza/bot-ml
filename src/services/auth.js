@@ -25,7 +25,7 @@ async function trocarCodePorToken(code) {
 
     const data = response.data;
 
-    console.log("✅ TOKEN RECEBIDO");
+    console.log("TOKEN DATA:", data);
 
     // 👤 Busca usuário
     const userResponse = await axios.get(
