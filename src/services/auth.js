@@ -27,7 +27,6 @@ async function trocarCodePorToken(code) {
 
     console.log("TOKEN DATA:", data);
 
-    // 👤 Busca usuário
     const userResponse = await axios.get(
       "https://api.mercadolibre.com/users/me",
       {
@@ -41,25 +40,30 @@ async function trocarCodePorToken(code) {
 
     console.log("👤 USUÁRIO:", user.nickname);
 
-    // 💾 Salva conta
     await Conta.findOneAndUpdate(
-      {
-        "mercadoLivre.userId": user.id,
-      },
+      { "mercadoLivre.userId": user.id },
       {
         nome: user.nickname,
-
-        mercadoLivre: {
-          userId: user.id,
-          accessToken: data.access_token,
-          refreshToken: data.refresh_token,
+        $set: {
+          "mercadoLivre.accessToken": data.access_token,
+        },
+        $setOnInsert: {
+          "mercadoLivre.userId": user.id,
         },
       },
-      {
-        upsert: true,
-        new: true,
-      },
+      { upsert: true, new: true },
     );
+
+    if (data.refresh_token) {
+      await Conta.updateOne(
+        { "mercadoLivre.userId": user.id },
+        {
+          $set: {
+            "mercadoLivre.refreshToken": data.refresh_token,
+          },
+        },
+      );
+    }
 
     console.log("✅ Conta salva com sucesso");
   } catch (error) {
@@ -70,7 +74,7 @@ async function trocarCodePorToken(code) {
 
     throw error;
   }
-}
+} // 👈 FECHOU A FUNÇÃO AQUI
 
 /**
  * 🔑 Retorna token válido
@@ -83,7 +87,6 @@ async function getValidToken(conta) {
       throw new Error("❌ Access token ausente");
     }
 
-    // 🔎 testa token atual
     await axios.get("https://api.mercadolibre.com/users/me", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -92,10 +95,7 @@ async function getValidToken(conta) {
 
     return accessToken;
   } catch (err) {
-    const status = err.response?.status;
-
-    // 🔄 token expirado
-    if (status === 401) {
+    if (err.response?.status === 401) {
       console.log("🔄 Access token expirado");
 
       const refreshToken = conta?.mercadoLivre?.refreshToken;
@@ -104,47 +104,31 @@ async function getValidToken(conta) {
         throw new Error("❌ Refresh token ausente. Faça login novamente.");
       }
 
-      try {
-        console.log("🔑 Atualizando token...");
-
-        const response = await axios.post(
-          "https://api.mercadolibre.com/oauth/token",
-          qs.stringify({
-            grant_type: "refresh_token",
-            client_id: process.env.CLIENT_ID,
-            client_secret: process.env.CLIENT_SECRET,
-            refresh_token: refreshToken,
-          }),
-          {
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
+      const response = await axios.post(
+        "https://api.mercadolibre.com/oauth/token",
+        qs.stringify({
+          grant_type: "refresh_token",
+          client_id: process.env.CLIENT_ID,
+          client_secret: process.env.CLIENT_SECRET,
+          refresh_token: refreshToken,
+        }),
+        {
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
           },
-        );
+        },
+      );
 
-        // 💾 salva novos tokens
-        conta.mercadoLivre.accessToken = response.data.access_token;
+      conta.mercadoLivre.accessToken = response.data.access_token;
 
-        if (response.data.refresh_token) {
-          conta.mercadoLivre.refreshToken = response.data.refresh_token;
-        }
-
-        await conta.save();
-
-        console.log("✅ Token atualizado");
-
-        return conta.mercadoLivre.accessToken;
-      } catch (refreshError) {
-        console.error(
-          "❌ Erro ao atualizar token:",
-          refreshError.response?.data || refreshError.message,
-        );
-
-        throw refreshError;
+      if (response.data.refresh_token) {
+        conta.mercadoLivre.refreshToken = response.data.refresh_token;
       }
-    }
 
-    console.error("❌ Erro getValidToken:", err.response?.data || err.message);
+      await conta.save();
+
+      return conta.mercadoLivre.accessToken;
+    }
 
     throw err;
   }
