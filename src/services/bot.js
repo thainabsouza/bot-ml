@@ -95,19 +95,21 @@ async function executarBot() {
 
     const contas = await Conta.find();
 
-    updateOne;
-
-    if (!conta?.mercadoLivre?.refreshToken) {
-      console.log("⚠️ Conta sem refreshToken (modo limitado)");
-    }
-
     for (const conta of contas) {
       if (!conta?.mercadoLivre?.accessToken) {
         console.log("⚠️ Conta sem accessToken");
         continue;
       }
 
+      if (!conta?.mercadoLivre?.refreshToken) {
+        console.log("⚠️ Conta sem refreshToken (modo limitado)");
+      }
+
       const perguntas = await listarPerguntas(conta);
+
+      if (!lastProcessed[conta._id]) {
+        lastProcessed[conta._id] = new Date(0);
+      }
 
       let latestDate = lastProcessed[conta._id];
 
@@ -126,7 +128,6 @@ async function executarBot() {
 
           console.log("✅ Respondido:", p.id);
 
-          // guarda a mais recente
           if (!latestDate || dataPergunta > latestDate) {
             latestDate = dataPergunta;
           }
@@ -137,7 +138,6 @@ async function executarBot() {
         }
       }
 
-      // 🔥 atualiza só no final
       if (latestDate) {
         lastProcessed[conta._id] = latestDate;
       }
@@ -152,8 +152,10 @@ async function executarBot() {
 
 // 🔁 LOOP
 async function loop() {
+  let locked = false;
+
   try {
-    const locked = await acquireLock("bot");
+    locked = await acquireLock("bot");
 
     if (!locked) {
       console.log("🔒 Outro worker já está rodando");
@@ -163,10 +165,12 @@ async function loop() {
     if (isHorarioPermitido()) {
       await executarBot();
     }
-
-    await releaseLock("bot");
   } catch (err) {
     console.error("❌ erro:", err);
+  } finally {
+    if (locked) {
+      await releaseLock("bot");
+    }
   }
 }
 
