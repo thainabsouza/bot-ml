@@ -1,82 +1,20 @@
 const axios = require("axios");
 const qs = require("querystring");
-const fs = require("fs");
 const Conta = require("../models/conta");
 
-const TOKEN_PATH = "token.json";
-
 /**
- * 🔐 Troca o CODE pelo access_token (PRIMEIRO LOGIN)
+ * 🔐 PRIMEIRO LOGIN
  */
 async function trocarCodePorToken(code) {
   try {
-    // 🔁 Trocar code por token
     const response = await axios.post(
       "https://api.mercadolibre.com/oauth/token",
-      new URLSearchParams({
+      qs.stringify({
         grant_type: "authorization_code",
         client_id: process.env.CLIENT_ID,
         client_secret: process.env.CLIENT_SECRET,
-        code: code,
+        code,
         redirect_uri: process.env.REDIRECT_URI,
-      }),
-      {
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      },
-    );
-
-    const data = response.data;
-
-    console.log("TOKEN RECEBIDO:", data);
-
-    // 🔥 Buscar dados do usuário
-    const user = await axios.get("https://api.mercadolibre.com/users/me", {
-      headers: {
-        Authorization: `Bearer ${data.access_token}`,
-      },
-    });
-
-    console.log("USUÁRIO:", user.data);
-
-    // 🔥 Salvar no Mongo
-    await Conta.findOneAndUpdate(
-      { "mercadoLivre.userId": user.data.id },
-      {
-        nome: user.data.nickname,
-        mercadoLivre: {
-          userId: user.data.id,
-          accessToken: data.access_token,
-          refreshToken: data.refresh_token,
-        },
-      },
-      { upsert: true, new: true },
-    );
-
-    console.log("✅ Conta salva com sucesso!");
-  } catch (error) {
-    console.error(
-      "❌ Erro ao trocar code por token:",
-      error.response?.data || error.message,
-    );
-    throw error;
-  }
-}
-
-module.exports = { trocarCodePorToken };
-/**
- * 🔄 Atualiza token expirado
- */
-async function refreshAccessToken() {
-  try {
-    const data = JSON.parse(fs.readFileSync(TOKEN_PATH));
-
-    const res = await axios.post(
-      "https://api.mercadolibre.com/oauth/token",
-      qs.stringify({
-        grant_type: "refresh_token",
-        client_id: process.env.CLIENT_ID,
-        client_secret: process.env.CLIENT_SECRET,
-        refresh_token: data.refreshToken,
       }),
       {
         headers: {
@@ -85,100 +23,134 @@ async function refreshAccessToken() {
       },
     );
 
-    const newData = {
-      accessToken: res.data.access_token,
-      refreshToken: res.data.refresh_token,
-    };
+    const data = response.data;
 
-    fs.writeFileSync(TOKEN_PATH, JSON.stringify(newData));
+    console.log("✅ TOKEN RECEBIDO");
 
-    console.log("🔄 Token atualizado");
-
-    return newData.accessToken;
-  } catch (err) {
-    console.error(
-      "❌ ERRO AO ATUALIZAR TOKEN:",
-      err.response?.data || err.message,
+    // 👤 Busca usuário
+    const userResponse = await axios.get(
+      "https://api.mercadolibre.com/users/me",
+      {
+        headers: {
+          Authorization: `Bearer ${data.access_token}`,
+        },
+      },
     );
-    throw err;
+
+    const user = userResponse.data;
+
+    console.log("👤 USUÁRIO:", user.nickname);
+
+    // 💾 Salva conta
+    await Conta.findOneAndUpdate(
+      {
+        "mercadoLivre.userId": user.id,
+      },
+      {
+        nome: user.nickname,
+
+        mercadoLivre: {
+          userId: user.id,
+          accessToken: data.access_token,
+          refreshToken: data.refresh_token,
+        },
+      },
+      {
+        upsert: true,
+        new: true,
+      },
+    );
+
+    console.log("✅ Conta salva com sucesso");
+  } catch (error) {
+    console.error(
+      "❌ Erro ao trocar code por token:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
   }
 }
 
 /**
- * 📥 Pega token do arquivo
- */
-async function getAccessToken() {
-  try {
-    const data = JSON.parse(fs.readFileSync(TOKEN_PATH));
-    return data.accessToken;
-  } catch {
-    console.log("⚠️ Token não encontrado. Precisa autenticar.");
-    return null;
-  }
-}
-
-/**
- * 🚀 Função principal (usa em todo o projeto)
+ * 🔑 Retorna token válido
  */
 async function getValidToken(conta) {
   try {
+    const accessToken = conta?.mercadoLivre?.accessToken;
+
+    if (!accessToken) {
+      throw new Error("❌ Access token ausente");
+    }
+
+    // 🔎 testa token atual
     await axios.get("https://api.mercadolibre.com/users/me", {
       headers: {
-        Authorization: `Bearer ${conta.mercadoLivre.accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 
-    return conta.mercadoLivre.accessToken;
+    return accessToken;
   } catch (err) {
-    if (err.response?.status === 401) {
-      const res = await axios.post(
-        "https://api.mercadolibre.com/oauth/token",
-        qs.stringify({
-          grant_type: "refresh_token",
-          client_id: process.env.CLIENT_ID,
-          client_secret: process.env.CLIENT_SECRET,
-          refresh_token: conta.mercadoLivre.refreshToken,
-        }),
-        {
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-        },
-      );
+    const status = err.response?.status;
 
-      conta.mercadoLivre.accessToken = res.data.access_token;
+    // 🔄 token expirado
+    if (status === 401) {
+      console.log("🔄 Access token expirado");
 
-      // ⚠️ MUITO IMPORTANTE
-      if (res.data.refresh_token) {
-        conta.mercadoLivre.refreshToken = res.data.refresh_token;
+      const refreshToken = conta?.mercadoLivre?.refreshToken;
+
+      if (!refreshToken) {
+        throw new Error("❌ Refresh token ausente. Faça login novamente.");
       }
 
-      await conta.save();
+      try {
+        console.log("🔑 Atualizando token...");
 
-      return conta.mercadoLivre.accessToken;
+        const response = await axios.post(
+          "https://api.mercadolibre.com/oauth/token",
+          qs.stringify({
+            grant_type: "refresh_token",
+            client_id: process.env.CLIENT_ID,
+            client_secret: process.env.CLIENT_SECRET,
+            refresh_token: refreshToken,
+          }),
+          {
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+          },
+        );
+
+        // 💾 salva novos tokens
+        conta.mercadoLivre.accessToken = response.data.access_token;
+
+        if (response.data.refresh_token) {
+          conta.mercadoLivre.refreshToken = response.data.refresh_token;
+        }
+
+        await conta.save();
+
+        console.log("✅ Token atualizado");
+
+        return conta.mercadoLivre.accessToken;
+      } catch (refreshError) {
+        console.error(
+          "❌ Erro ao atualizar token:",
+          refreshError.response?.data || refreshError.message,
+        );
+
+        throw refreshError;
+      }
     }
+
+    console.error("❌ Erro getValidToken:", err.response?.data || err.message);
 
     throw err;
   }
 }
 
-async function pegarUsuario(conta) {
-  const token = await getValidToken(conta);
-
-  const res = await axios.get("https://api.mercadolibre.com/users/me", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  console.log(res.data);
-}
-
-//pegarUsuario();
-
 module.exports = {
   trocarCodePorToken,
-  getAccessToken,
-  refreshAccessToken,
   getValidToken,
 };

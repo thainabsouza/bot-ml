@@ -83,6 +83,7 @@ router.get("/me", async (req, res) => {
     }
 
     // 🔑 pega token válido
+    console.log(conta.mercadoLivre);
     const token = await getValidToken(conta);
 
     // 👤 busca usuário na API
