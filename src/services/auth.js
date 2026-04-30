@@ -101,7 +101,10 @@ async function getValidToken(conta) {
       const refreshToken = conta?.mercadoLivre?.refreshToken;
 
       if (!refreshToken) {
-        throw new Error("❌ Refresh token ausente. Faça login novamente.");
+        console.log("⚠️ Conta sem refresh token → precisa relogar");
+
+        // evita crash do bot
+        return conta.mercadoLivre.accessToken;
       }
 
       const response = await axios.post(
@@ -119,7 +122,16 @@ async function getValidToken(conta) {
         },
       );
 
-      conta.mercadoLivre.accessToken = response.data.access_token;
+      await Conta.updateOne(
+        { _id: conta._id },
+        {
+          $set: {
+            "mercadoLivre.accessToken": response.data.access_token,
+            "mercadoLivre.refreshToken":
+              response.data.refresh_token || refreshToken,
+          },
+        },
+      );
 
       if (response.data.refresh_token) {
         conta.mercadoLivre.refreshToken = response.data.refresh_token;
@@ -132,9 +144,9 @@ async function getValidToken(conta) {
 
     throw err;
   }
-}
 
-module.exports = {
-  trocarCodePorToken,
-  getValidToken,
-};
+  module.exports = {
+    trocarCodePorToken,
+    getValidToken,
+  };
+}

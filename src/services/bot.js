@@ -95,12 +95,19 @@ async function executarBot() {
 
     const contas = await Conta.find();
 
-    for (const conta of contas) {
-      const perguntas = await listarPerguntas(conta);
+    updateOne;
 
-      if (!lastProcessed[conta._id]) {
-        lastProcessed[conta._id] = new Date(0); // início do tempo
+    if (!conta?.mercadoLivre?.refreshToken) {
+      console.log("⚠️ Conta sem refreshToken (modo limitado)");
+    }
+
+    for (const conta of contas) {
+      if (!conta?.mercadoLivre?.accessToken) {
+        console.log("⚠️ Conta sem accessToken");
+        continue;
       }
+
+      const perguntas = await listarPerguntas(conta);
 
       let latestDate = lastProcessed[conta._id];
 
@@ -145,26 +152,21 @@ async function executarBot() {
 
 // 🔁 LOOP
 async function loop() {
-  while (true) {
+  try {
     const locked = await acquireLock("bot");
 
     if (!locked) {
       console.log("🔒 Outro worker já está rodando");
-      await sleep(10000);
-      continue;
+      return;
     }
 
-    try {
-      if (isHorarioPermitido()) {
-        await executarBot();
-      }
-    } catch (err) {
-      console.error("❌ erro:", err);
-    } finally {
-      await releaseLock("bot");
+    if (isHorarioPermitido()) {
+      await executarBot();
     }
 
-    await sleep(60000);
+    await releaseLock("bot");
+  } catch (err) {
+    console.error("❌ erro:", err);
   }
 }
 
