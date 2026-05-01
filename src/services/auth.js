@@ -89,11 +89,21 @@ async function getValidToken(conta) {
       throw new Error("❌ Access token ausente");
     }
 
-    await axios.get("https://api.mercadolibre.com/users/me", {
+    async function getValidToken(conta) {
+      const accessToken = conta?.mercadoLivre?.accessToken;
+
+      if (!accessToken) {
+        throw new Error("❌ Access token ausente");
+      }
+
+      return accessToken;
+    }
+
+    /*await axios.get("https://api.mercadolibre.com/users/me", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
-    });
+    });*/
 
     return accessToken;
   } catch (err) {

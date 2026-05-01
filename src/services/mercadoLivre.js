@@ -2,27 +2,25 @@ const axios = require("axios");
 const { getValidToken } = require("./auth");
 
 async function listarPerguntas(conta) {
-  const token = await getValidToken(conta);
+  try {
+    const token = await getValidToken(conta);
 
-  const limit = 10;
+    const limit = 10;
 
-  const url = `https://api.mercadolibre.com/questions/search?seller_id=${conta.mercadoLivre.userId}&limit=${limit}&sort=date_created_desc`;
+    const url = `https://api.mercadolibre.com/questions/search?seller_id=${conta.mercadoLivre.userId}&limit=${limit}&sort=date_created_desc`;
 
-  const res = await axios.get(url, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+    const res = await axios.get(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-  const perguntas = res.data.questions;
+    return res.data.questions;
+  } catch (err) {
+    if (err.response?.status === 401 || err.response?.status === 403) {
+      console.log("⛔ Token expirado da conta:", conta.nome);
+      return [];
+    }
 
-  console.log("📩 TOTAL PERGUNTAS:", perguntas.length);
-
-  return perguntas;
-}
-
-async function responder(id, texto, conta) {
-  if (!texto?.trim()) {
-    console.log("❌ Texto inválido");
-    return;
+    throw err;
   }
 
   const token = await getValidToken(conta); // 🔥 CORRETO
