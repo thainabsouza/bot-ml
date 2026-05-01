@@ -44,11 +44,10 @@ async function trocarCodePorToken(code) {
       { "mercadoLivre.userId": user.id },
       {
         nome: user.nickname,
-        $set: {
-          "mercadoLivre.accessToken": data.access_token,
-        },
-        $setOnInsert: {
-          "mercadoLivre.userId": user.id,
+        mercadoLivre: {
+          accessToken: data.access_token,
+          refreshToken: data.refresh_token,
+          userId: user.id,
         },
       },
       { upsert: true, new: true },
@@ -103,7 +102,7 @@ async function getValidToken(conta) {
       if (!refreshToken) {
         console.log("⚠️ Conta sem refresh token → precisa relogar");
 
-        return conta.mercadoLivre.accessToken;
+        throw new Error("Conta sem refresh token");
       }
 
       const response = await axios.post(
