@@ -111,4 +111,9 @@ router.get("/bot/status", (req, res) => {
   res.json(botStatus);
 });
 
+router.get("/debug-conta", async (req, res) => {
+  const conta = await Conta.findOne();
+  res.json(conta);
+});
+
 module.exports = router;

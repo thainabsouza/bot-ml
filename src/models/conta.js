@@ -13,7 +13,7 @@ const ContaSchema = new mongoose.Schema(
       },
       refreshToken: {
         type: String,
-        required: false,
+        required: null,
       },
       userId: {
         type: Number,

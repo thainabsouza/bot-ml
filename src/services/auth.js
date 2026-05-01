@@ -46,11 +46,14 @@ async function trocarCodePorToken(code) {
         nome: user.nickname,
         mercadoLivre: {
           accessToken: data.access_token,
-          refreshToken: data.refresh_token,
+          refreshToken: data.refresh_token || null,
           userId: user.id,
         },
       },
-      { upsert: true, new: true },
+      {
+        upsert: true,
+        new: true,
+      },
     );
 
     if (data.refresh_token) {
