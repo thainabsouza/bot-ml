@@ -103,7 +103,6 @@ async function getValidToken(conta) {
       if (!refreshToken) {
         console.log("⚠️ Conta sem refresh token → precisa relogar");
 
-        // evita crash do bot
         return conta.mercadoLivre.accessToken;
       }
 
@@ -133,6 +132,8 @@ async function getValidToken(conta) {
         },
       );
 
+      conta.mercadoLivre.accessToken = response.data.access_token;
+
       if (response.data.refresh_token) {
         conta.mercadoLivre.refreshToken = response.data.refresh_token;
       }
@@ -144,9 +145,10 @@ async function getValidToken(conta) {
 
     throw err;
   }
-
-  module.exports = {
-    trocarCodePorToken,
-    getValidToken,
-  };
 }
+
+// ✅ EXPORT FORA DA FUNÇÃO
+module.exports = {
+  trocarCodePorToken,
+  getValidToken,
+};
