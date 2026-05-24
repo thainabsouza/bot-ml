@@ -2,13 +2,17 @@ const axios = require("axios");
 const qs = require("querystring");
 const Conta = require("../models/conta");
 
+require("dotenv").config();
+
+const ML_URL = "https://api.mercadolibre.com";
+
 /**
- * 🔐 PRIMEIRO LOGIN
+ * 🔐 LOGIN INICIAL
  */
 async function trocarCodePorToken(code) {
   try {
     const response = await axios.post(
-      "https://api.mercadolibre.com/oauth/token",
+      `${ML_URL}/oauth/token`,
       qs.stringify({
         grant_type: "authorization_code",
         client_id: process.env.CLIENT_ID,
@@ -25,35 +29,34 @@ async function trocarCodePorToken(code) {
 
     const data = response.data;
 
-    console.log("TOKEN DATA:", data);
+    console.log("✅ TOKEN GERADO");
+    console.log("ACCESS:", data.access_token);
+    console.log("REFRESH:", data.refresh_token);
+    console.log("EXPIRES:", data.expires_in);
 
-    const userResponse = await axios.get(
-      "https://api.mercadolibre.com/users/me",
-      {
-        headers: {
-          Authorization: `Bearer ${data.access_token}`,
-        },
+    const userResponse = await axios.get(`${ML_URL}/users/me`, {
+      headers: {
+        Authorization: `Bearer ${data.access_token}`,
       },
-    );
+    });
 
     const user = userResponse.data;
 
-    console.log("👤 USUÁRIO:", user.nickname);
+    console.log("👤 Usuário:", user.nickname);
 
     await Conta.findOneAndUpdate(
       { "mercadoLivre.userId": user.id },
       {
-        nome: user.nickname,
-        mercadoLivre: {
-          accessToken: data.access_token,
-          refreshToken: data.refresh_token || null,
-          userId: user.id,
+        $set: {
+          nome: user.nickname,
+          "mercadoLivre.userId": user.id,
+          "mercadoLivre.accessToken": data.access_token,
+          "mercadoLivre.expiresAt": new Date(
+            Date.now() + data.expires_in * 1000,
+          ),
         },
       },
-      {
-        upsert: true,
-        new: true,
-      },
+      { upsert: true, new: true },
     );
 
     if (data.refresh_token) {
@@ -67,90 +70,95 @@ async function trocarCodePorToken(code) {
       );
     }
 
-    console.log("✅ Conta salva com sucesso");
-  } catch (error) {
-    console.error(
-      "❌ Erro ao trocar code por token:",
-      error.response?.data || error.message,
-    );
+    console.log("✅ Conta salva no Mongo");
 
-    throw error;
+    return data;
+  } catch (err) {
+    console.error("❌ Erro OAuth:", err.response?.data || err.message);
+    throw err;
   }
-} // 👈 FECHOU A FUNÇÃO AQUI
+}
 
 /**
- * 🔑 Retorna token válido
+ * 🔄 RENOVA ACCESS TOKEN
  */
-async function getValidToken(conta) {
+async function refreshAccessToken(conta) {
   try {
-    const accessToken = conta?.mercadoLivre?.accessToken;
+    console.log("🔄 Renovando token:", conta.nome);
 
-    if (!accessToken) {
-      throw new Error("❌ Access token ausente");
+    const refreshToken = conta?.mercadoLivre?.refreshToken;
+
+    if (!refreshToken) {
+      throw new Error("Conta sem refresh token");
     }
 
-    /*await axios.get("https://api.mercadolibre.com/users/me", {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
+    const response = await axios.post(
+      `${ML_URL}/oauth/token`,
+      qs.stringify({
+        grant_type: "refresh_token",
+        client_id: process.env.CLIENT_ID,
+        client_secret: process.env.CLIENT_SECRET,
+        refresh_token: refreshToken,
+      }),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
       },
-    });*/
+    );
 
-    return accessToken;
-  } catch (err) {
-    if (err.response?.status === 401) {
-      console.log("🔄 Access token expirado");
+    const data = response.data;
 
-      const refreshToken = conta?.mercadoLivre?.refreshToken;
+    conta.mercadoLivre.accessToken = data.access_token;
 
-      if (!refreshToken) {
-        console.log("⚠️ Conta sem refresh token → precisa relogar");
-
-        throw new Error("Conta sem refresh token");
-      }
-
-      const response = await axios.post(
-        "https://api.mercadolibre.com/oauth/token",
-        qs.stringify({
-          grant_type: "refresh_token",
-          client_id: process.env.CLIENT_ID,
-          client_secret: process.env.CLIENT_SECRET,
-          refresh_token: refreshToken,
-        }),
-        {
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-        },
-      );
-
-      await Conta.updateOne(
-        { _id: conta._id },
-        {
-          $set: {
-            "mercadoLivre.accessToken": response.data.access_token,
-            "mercadoLivre.refreshToken":
-              response.data.refresh_token || refreshToken,
-          },
-        },
-      );
-
-      conta.mercadoLivre.accessToken = response.data.access_token;
-
-      if (response.data.refresh_token) {
-        conta.mercadoLivre.refreshToken = response.data.refresh_token;
-      }
-
-      await conta.save();
-
-      return conta.mercadoLivre.accessToken;
+    if (data.refresh_token) {
+      conta.mercadoLivre.refreshToken = data.refresh_token;
     }
+
+    conta.mercadoLivre.expiresAt = new Date(
+      Date.now() + data.expires_in * 1000,
+    );
+
+    await conta.save();
+
+    console.log("✅ Token renovado");
+
+    return conta.mercadoLivre.accessToken;
+  } catch (err) {
+    console.error("❌ Erro refresh token:", err.response?.data || err.message);
 
     throw err;
   }
 }
 
-// ✅ EXPORT FORA DA FUNÇÃO
+/**
+ * 🔑 RETORNA TOKEN VÁLIDO
+ */
+async function getValidToken(conta) {
+  try {
+    if (!conta?.mercadoLivre?.accessToken) {
+      throw new Error("Conta sem access token");
+    }
+
+    const expiresAt = new Date(conta.mercadoLivre.expiresAt);
+
+    const isExpired = Date.now() >= expiresAt.getTime() - 60000;
+
+    if (!isExpired) {
+      return conta.mercadoLivre.accessToken;
+    }
+
+    console.log("⛔ Token expirado:", conta.nome);
+
+    return await refreshAccessToken(conta);
+  } catch (err) {
+    console.error("❌ Erro getValidToken:", err.message);
+    throw err;
+  }
+}
+
 module.exports = {
   trocarCodePorToken,
+  refreshAccessToken,
   getValidToken,
 };
