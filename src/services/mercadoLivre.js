@@ -6,9 +6,7 @@ async function listarPerguntas(conta) {
   try {
     const token = await getValidToken(conta);
 
-    const limit = 10;
-
-    const url = `https://api.mercadolibre.com/questions/search?seller_id=${conta.mercadoLivre.userId}&limit=${limit}&sort=date_created_desc`;
+    const url = `https://api.mercadolibre.com/questions/search?seller_id=${conta.mercadoLivre.userId}&limit=50&sort=date_created_desc`;
 
     const res = await axios.get(url, {
       headers: {
@@ -16,17 +14,17 @@ async function listarPerguntas(conta) {
       },
     });
 
-    console.log("📩 TOTAL PERGUNTAS:", res.data.questions.length);
+    const perguntas = res.data.questions || [];
 
-    return res.data.questions;
+    // 🔥 FILTRA APENAS NÃO RESPONDIDAS
+    const abertas = perguntas.filter((p) => !p.answer);
+
+    console.log("📩 TOTAL BRUTO:", perguntas.length);
+    console.log("📩 NÃO RESPONDIDAS:", abertas.length);
+
+    return abertas;
   } catch (err) {
-    if (err.response?.status === 401 || err.response?.status === 403) {
-      console.log("⛔ Token expirado da conta:", conta.nome);
-      return [];
-    }
-
     console.log("❌ Erro listar perguntas:", err.response?.data || err.message);
-
     return [];
   }
 }

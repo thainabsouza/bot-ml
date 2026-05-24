@@ -120,7 +120,7 @@ async function executarBot() {
       let latestDate = lastProcessed[conta._id];
 
       for (const p of perguntas) {
-        console.log("📦 PERGUNTA:", JSON.stringify(p, null, 2));
+        // console.log("📦 PERGUNTA:", JSON.stringify(p, null, 2));
         if (!isRespondable(p)) continue;
 
         const dataPergunta = new Date(p.date_created);
