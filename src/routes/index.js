@@ -101,7 +101,9 @@ router.get("/me", async (req, res) => {
 });
 
 router.get("/auth/login", (req, res) => {
-  const url = `https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=${process.env.CLIENT_ID}&redirect_uri=${process.env.REDIRECT_URI}`;
+  const redirectUri = encodeURIComponent(process.env.REDIRECT_URI);
+
+  const url = `https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=${process.env.CLIENT_ID}&redirect_uri=${redirectUri}`;
 
   res.redirect(url);
 });
