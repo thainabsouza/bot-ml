@@ -64,7 +64,8 @@ async function trocarCodePorToken(code) {
         { "mercadoLivre.userId": user.id },
         {
           $set: {
-            "mercadoLivre.refreshToken": data.refresh_token,
+            "mercadoLivre.refreshToken":
+              data.refresh_token || conta?.mercadoLivre?.refreshToken || null,
           },
         },
       );
@@ -125,7 +126,22 @@ async function refreshAccessToken(conta) {
 
     return conta.mercadoLivre.accessToken;
   } catch (err) {
-    console.error("❌ Erro refresh token:", err.response?.data || err.message);
+    console.log("❌ Erro refresh token:", err.response?.data || err.message);
+
+    // 👇 ADICIONA ISSO
+    if (err.response?.status === 401 || err.response?.status === 400) {
+      console.log("🔴 Refresh token inválido → conta precisa relogar");
+
+      await Conta.updateOne(
+        { _id: conta._id },
+        {
+          $unset: {
+            "mercadoLivre.accessToken": "",
+            "mercadoLivre.refreshToken": "",
+          },
+        },
+      );
+    }
 
     throw err;
   }
