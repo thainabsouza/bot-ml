@@ -67,7 +67,13 @@ async function gerarResposta(pergunta) {
 
 // 🔎 normaliza texto do ML
 function getText(p) {
-  return p?.text?.plain_text || p?.text?.text || p?.text || "";
+  if (!p) return "";
+
+  if (typeof p.text === "string") {
+    return p.text;
+  }
+
+  return p.text?.plain_text || p.text?.text || p.text?.plain || "";
 }
 
 // ✔️ valida pergunta
@@ -114,14 +120,16 @@ async function executarBot() {
       let latestDate = lastProcessed[conta._id];
 
       for (const p of perguntas) {
+        console.log("📦 PERGUNTA:", JSON.stringify(p, null, 2));
         if (!isRespondable(p)) continue;
 
         const dataPergunta = new Date(p.date_created);
 
-        if (dataPergunta <= lastProcessed[conta._id]) continue;
+        //if (dataPergunta <= lastProcessed[conta._id]) continue;
 
         try {
           const resposta = await gerarResposta(getText(p));
+
           if (!resposta) continue;
 
           await responder(p.id, resposta, conta);
