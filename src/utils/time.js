@@ -20,24 +20,27 @@ function isHorarioPermitido() {
     }),
   );
 
-  const day = brasilDate.getDay();
+  const day = brasilDate.getDay(); // 0 domingo, 6 sábado
   const hour = brasilDate.getHours();
 
-  const mm = String(brasilDate.getMonth() + 1).padStart(2, "0");
-  const dd = String(brasilDate.getDate()).padStart(2, "0");
-
-  const mmdd = `${mm}-${dd}`;
-
-  const isFeriado = feriadosBR.includes(mmdd);
   const isWeekend = day === 0 || day === 6;
-  const isBusinessHours = hour >= 8 && hour < 18;
 
-  const allowed = !isWeekend && !isFeriado && isBusinessHours;
+  // segunda a sexta
+  const isWeekday = !isWeekend;
+
+  // horário bloqueado: 08 até 17:59
+  const isBlockedHours = hour >= 8 && hour < 18;
+
+  // regra final:
+  // libera sempre no fim de semana
+  // libera fora do horário bloqueado durante semana
+  const allowed = isWeekend || (isWeekday && !isBlockedHours);
 
   console.log({
     hour,
     day,
-    mmdd,
+    isWeekend,
+    isBlockedHours,
     allowed,
   });
 
