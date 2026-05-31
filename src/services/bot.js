@@ -40,10 +40,10 @@ async function gerarResposta(pergunta) {
         Se for compatível, incentive a compra e sempre coloque o Att fecautopeças.
         se a pergunta for sobre compatibilidade e no anuncio estiver compativel com a pergunta confirma exemplo:
         Bom dia, Boa tarde ou boa noite de acordo com o horario da pergunta, e responder sim é compativel,aguardamos sua compra, Att fecautopeças.
-        Não precisa responder "se o anuncio é compativel" observe você se é compativel e apenas responde posivamente a compatibilidade.
+        Não precisa responder "se o anuncio é compativel" observe você se é compativel e apenas responde positivamente a compatibilidade.
         Se perguntar se pode retirar no local, responder que infelizmente não é possivel, só fazemos envio no momento.
-        Se precisar comprar o par é só adicionar um produto de acordo com o anuncio de cada lado.
-        Se o cliente perguntar se a peças é lado esquerdo ou lado direiro, pode responder que ele pode escolher o lado em variações
+        Se precisar comprar o par é só adicionar um produto de acordo com o anuncio de cada lado caso tenha disponivel.
+        Se o cliente perguntar se a peças é lado esquerdo ou lado direiro, pode responder que ele pode escolher o lado nas variações disponiveis.
 
           `,
         },
@@ -125,7 +125,7 @@ async function executarBot() {
 
         const dataPergunta = new Date(p.date_created);
 
-        //if (dataPergunta <= lastProcessed[conta._id]) continue;
+        if (dataPergunta <= lastProcessed[conta._id]) continue;
 
         try {
           const resposta = await gerarResposta(getText(p));
@@ -164,6 +164,8 @@ async function loop() {
 
   try {
     locked = await acquireLock("bot");
+    console.log("🕒 DATA SERVER:", new Date());
+    console.log("🕒 PODE RODAR?", isHorarioPermitido());
 
     if (!locked) {
       console.log("🔒 Outro worker já está rodando");

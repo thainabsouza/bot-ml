@@ -11,44 +11,34 @@ const feriadosBR = [
 
 function isHorarioPermitido() {
   if (process.env.BOT_FORCE_RUN === "true") {
-    console.log("⚡ FORCE RUN ATIVADO");
     return true;
   }
 
-  const now = new Date();
-
-  const hora = new Date(
-    now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }),
+  const brasilDate = new Date(
+    new Date().toLocaleString("en-US", {
+      timeZone: "America/Sao_Paulo",
+    }),
   );
 
-  const day = hora.getDay();
-  const hour = hora.getHours();
+  const day = brasilDate.getDay();
+  const hour = brasilDate.getHours();
 
-  const mmdd = hora
-    .toLocaleDateString("en-CA", {
-      timeZone: "America/Sao_Paulo",
-    })
-    .slice(5);
+  const mm = String(brasilDate.getMonth() + 1).padStart(2, "0");
+  const dd = String(brasilDate.getDate()).padStart(2, "0");
+
+  const mmdd = `${mm}-${dd}`;
 
   const isFeriado = feriadosBR.includes(mmdd);
   const isWeekend = day === 0 || day === 6;
-  const isWeekday = day >= 1 && day <= 5;
-
   const isBusinessHours = hour >= 8 && hour < 18;
 
-  const isBlocked = !isFeriado && !isWeekend && isBusinessHours;
-
-  const allowed = !isBlocked;
+  const allowed = !isWeekend && !isFeriado && isBusinessHours;
 
   console.log({
-    day,
     hour,
+    day,
     mmdd,
-    isFeriado,
-    isWeekend,
-    isBusinessHours,
     allowed,
-    force: process.env.BOT_FORCE_RUN,
   });
 
   return allowed;
