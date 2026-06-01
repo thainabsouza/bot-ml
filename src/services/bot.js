@@ -5,10 +5,13 @@ const { acquireLock, releaseLock } = require("../utils/lock");
 
 const OpenAI = require("openai");
 require("dotenv").config();
+
 const VALID_STATUS = new Set(["UNANSWERED", "OPEN"]);
+
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
 const lastProcessed = {};
 
 const botStatus = {
@@ -54,24 +57,17 @@ async function gerarResposta(pergunta) {
       ],
     });
 
-    console.log("✅ Resposta IA gerada");
-    const texto =
-      response.output_text || response.output?.[0]?.content?.[0]?.text || null;
-
-    return texto;
+    return response.output_text || null;
   } catch (err) {
     console.error("❌ IA erro:", err.response?.data || err.message);
     return null;
   }
 }
 
-// 🔎 normaliza texto do ML
+// 🔎 texto
 function getText(p) {
   if (!p) return "";
-
-  if (typeof p.text === "string") {
-    return p.text;
-  }
+  if (typeof p.text === "string") return p.text;
 
   return p.text?.plain_text || p.text?.text || p.text?.plain || "";
 }
@@ -102,14 +98,7 @@ async function executarBot() {
     const contas = await Conta.find();
 
     for (const conta of contas) {
-      if (!conta?.mercadoLivre?.accessToken) {
-        console.log("⚠️ Conta sem accessToken");
-        continue;
-      }
-
-      if (!conta?.mercadoLivre?.refreshToken) {
-        console.log("⚠️ Conta sem refreshToken (modo limitado)");
-      }
+      if (!conta?.mercadoLivre?.accessToken) continue;
 
       const perguntas = await listarPerguntas(conta);
 
@@ -120,35 +109,28 @@ async function executarBot() {
       let latestDate = lastProcessed[conta._id];
 
       for (const p of perguntas) {
-        // console.log("📦 PERGUNTA:", JSON.stringify(p, null, 2));
         if (!isRespondable(p)) continue;
 
         const dataPergunta = new Date(p.date_created);
 
         if (dataPergunta <= lastProcessed[conta._id]) continue;
 
-        try {
-          const resposta = await gerarResposta(getText(p));
+        const resposta = await gerarResposta(getText(p));
 
-          if (!resposta) continue;
+        if (!resposta) continue;
 
-          await responder(p.id, resposta, conta);
+        await responder(p.id, resposta, conta);
 
-          console.log("✅ Respondido:", p.id);
+        console.log("✅ Respondido:", p.id);
 
-          if (!latestDate || dataPergunta > latestDate) {
-            latestDate = dataPergunta;
-          }
-
-          await sleep(2000);
-        } catch (err) {
-          console.log("❌ ERRO ML:", err.response?.data || err.message);
+        if (!latestDate || dataPergunta > latestDate) {
+          latestDate = dataPergunta;
         }
+
+        await sleep(2000);
       }
 
-      if (latestDate) {
-        lastProcessed[conta._id] = latestDate;
-      }
+      lastProcessed[conta._id] = latestDate;
     }
   } catch (err) {
     botStatus.lastError = err.message;
@@ -164,16 +146,22 @@ async function loop() {
 
   try {
     locked = await acquireLock("bot");
-    console.log("🕒 DATA SERVER:", new Date());
-    console.log("🕒 PODE RODAR?", isHorarioPermitido());
 
     if (!locked) {
-      console.log("🔒 Outro worker já está rodando");
+      console.log("🔒 Outro worker rodando");
       return;
     }
 
-    if (isHorarioPermitido()) {
+    console.log("🕒 EXECUÇÃO:", new Date());
+
+    const permitido = isHorarioPermitido();
+
+    console.log("🕒 PODE RODAR?", permitido);
+
+    if (permitido) {
       await executarBot();
+    } else {
+      console.log("⛔ BLOQUEADO POR HORÁRIO");
     }
   } catch (err) {
     console.error("❌ erro:", err);
