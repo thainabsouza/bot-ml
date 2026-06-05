@@ -1,3 +1,5 @@
+const { toZonedTime } = require("date-fns-tz");
+
 const feriadosBR = [
   "01-01",
   "04-21",
@@ -14,11 +16,7 @@ function isHorarioPermitido() {
     return true;
   }
 
-  const brasilDate = new Date(
-    new Date().toLocaleString("en-US", {
-      timeZone: "America/Sao_Paulo",
-    }),
-  );
+  const brasilDate = toZonedTime(new Date(), "America/Sao_Paulo");
 
   const day = brasilDate.getDay();
   const hour = brasilDate.getHours();
@@ -31,7 +29,7 @@ function isHorarioPermitido() {
   const isHoliday = feriadosBR.includes(monthDay);
   const isWeekend = day === 0 || day === 6;
 
-  // bloqueado das 08 até 17:59
+  // bloqueado entre 08:00 e 17:59
   const isBlockedHours = hour >= 8 && hour < 18;
 
   const allowed = isHoliday || isWeekend || !isBlockedHours;
