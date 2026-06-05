@@ -102,6 +102,9 @@ async function executarBot() {
 
       const perguntas = await listarPerguntas(conta);
 
+      console.log("📥 PERGUNTAS RECEBIDAS:", perguntas?.length);
+      console.log("📥 PRIMEIRA PERGUNTA:", perguntas?.[0]);
+
       if (!lastProcessed[conta._id]) {
         lastProcessed[conta._id] = new Date(0);
       }
