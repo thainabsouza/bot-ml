@@ -137,8 +137,8 @@ async function executarBot() {
 
       lastProcessed[conta._id] = latestDate;
     }
-    console.log("📥 PERGUNTAS RECEBIDAS:", perguntas?.length);
-    console.log("📥 PRIMEIRA PERGUNTA:", perguntas?.[0]);
+    //console.log("📥 PERGUNTAS RECEBIDAS:", perguntas?.length);
+    //console.log("📥 PRIMEIRA PERGUNTA:", perguntas?.[0]);
   } catch (err) {
     botStatus.lastError = err.message;
     console.error("❌ Erro no bot:", err.response?.data || err.message);
