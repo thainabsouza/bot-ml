@@ -147,8 +147,7 @@ async function loop() {
   let locked = false;
 
   try {
-    //locked = await acquireLock("bot");
-    await Lock.create({ name, lockedAt: new Date() });
+    locked = await acquireLock("bot");
 
     if (!locked) {
       console.log("🔒 Outro worker rodando");
@@ -156,15 +155,10 @@ async function loop() {
     }
 
     console.log("🕒 EXECUÇÃO:", new Date());
-    console.log("Bot iniciou");
-    console.log("Contas:", contas.length);
-    console.log("Perguntas:", perguntas.length);
-    console.log("Pergunta:", getText(p));
-    console.log("Resposta IA:", resposta);
 
     const permitido = isHorarioPermitido();
+
     console.log("Resultado:", permitido);
-    console.log("🕒 PODE RODAR?", permitido);
 
     if (permitido) {
       await executarBot();
@@ -179,5 +173,11 @@ async function loop() {
     }
   }
 }
+const contas = await Conta.find();
+console.log("Contas encontradas:", contas.length);
+const perguntas = await listarPerguntas(conta);
+console.log("Perguntas recebidas:", perguntas.length);
+console.log("Pergunta:", getText(p));
+console.log("Resposta IA:", resposta);
 
 module.exports = { loop, botStatus };
