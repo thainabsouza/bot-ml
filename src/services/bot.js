@@ -102,9 +102,6 @@ async function executarBot() {
 
       const perguntas = await listarPerguntas(conta);
 
-      // console.log("📥 PERGUNTAS RECEBIDAS:", perguntas?.length);
-      //console.log("📥 PRIMEIRA PERGUNTA:", perguntas?.[0]);
-
       if (!lastProcessed[conta._id]) {
         lastProcessed[conta._id] = new Date(0);
       }
@@ -150,7 +147,8 @@ async function loop() {
   let locked = false;
 
   try {
-    locked = await acquireLock("bot");
+    //locked = await acquireLock("bot");
+    await Lock.create({ name, lockedAt: new Date() });
 
     if (!locked) {
       console.log("🔒 Outro worker rodando");
@@ -158,9 +156,14 @@ async function loop() {
     }
 
     console.log("🕒 EXECUÇÃO:", new Date());
+    console.log("Bot iniciou");
+    console.log("Contas:", contas.length);
+    console.log("Perguntas:", perguntas.length);
+    console.log("Pergunta:", getText(p));
+    console.log("Resposta IA:", resposta);
 
     const permitido = isHorarioPermitido();
-
+    console.log("Resultado:", permitido);
     console.log("🕒 PODE RODAR?", permitido);
 
     if (permitido) {
