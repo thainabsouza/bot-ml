@@ -97,10 +97,14 @@ async function executarBot() {
 
     const contas = await Conta.find();
 
+    console.log("📦 Contas encontradas:", contas.length);
+
     for (const conta of contas) {
       if (!conta?.mercadoLivre?.accessToken) continue;
 
       const perguntas = await listarPerguntas(conta);
+
+      console.log("📥 Perguntas recebidas:", perguntas.length);
 
       if (!lastProcessed[conta._id]) {
         lastProcessed[conta._id] = new Date(0);
@@ -122,6 +126,7 @@ async function executarBot() {
         await responder(p.id, resposta, conta);
 
         console.log("✅ Respondido:", p.id);
+        console.log("🤖 Resposta IA:", resposta);
 
         if (!latestDate || dataPergunta > latestDate) {
           latestDate = dataPergunta;
@@ -132,8 +137,8 @@ async function executarBot() {
 
       lastProcessed[conta._id] = latestDate;
     }
-    console.log("📥 PERGUNTAS RECEBIDAS:", perguntas?.length);
-    console.log("📥 PRIMEIRA PERGUNTA:", perguntas?.[0]);
+    //console.log("📥 PERGUNTAS RECEBIDAS:", perguntas?.length);
+    // console.log("📥 PRIMEIRA PERGUNTA:", perguntas?.[0]);
   } catch (err) {
     botStatus.lastError = err.message;
     console.error("❌ Erro no bot:", err.response?.data || err.message);
@@ -173,11 +178,5 @@ async function loop() {
     }
   }
 }
-const contas = await Conta.find();
-console.log("Contas encontradas:", contas.length);
-const perguntas = await listarPerguntas(conta);
-console.log("Perguntas recebidas:", perguntas.length);
-console.log("Pergunta:", getText(p));
-console.log("Resposta IA:", resposta);
 
 module.exports = { loop, botStatus };
