@@ -113,15 +113,31 @@ async function executarBot() {
       let latestDate = lastProcessed[conta._id];
 
       for (const p of perguntas) {
+        console.log("================================");
+        console.log("ID:", p.id);
+        console.log("STATUS:", p.status);
+        console.log("ANSWER:", p.answer);
+        console.log("TEXT:", getText(p));
+        console.log("DATE:", p.date_created);
+        console.log("RESPONDABLE:", isRespondable(p));
+
         if (!isRespondable(p)) continue;
 
         const dataPergunta = new Date(p.date_created);
 
-        if (dataPergunta <= lastProcessed[conta._id]) continue;
+        if (dataPergunta <= lastProcessed[conta._id]) {
+          console.log("⏭️ Ignorada por lastProcessed");
+          continue;
+        }
+        console.log("🤖 Gerando resposta...");
 
         const resposta = await gerarResposta(getText(p));
+        console.log("🤖 Resposta gerada:", resposta);
 
-        if (!resposta) continue;
+        if (!resposta) {
+          console.log("❌ IA não retornou resposta");
+          continue;
+        }
 
         await responder(p.id, resposta, conta);
 
