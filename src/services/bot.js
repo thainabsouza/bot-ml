@@ -100,16 +100,18 @@ async function executarBot() {
     console.log("📦 Contas encontradas:", contas.length);
 
     for (const conta of contas) {
-      if (!conta?.mercadoLivre?.accessToken) continue;
+      console.log("Conta:", conta._id);
 
-      const perguntas = await listarPerguntas(conta);
+      console.log("Tem token?", !!conta?.mercadoLivre?.accessToken);
 
-      console.log("📥 Perguntas recebidas:", perguntas.length);
-
-      if (!lastProcessed[conta._id]) {
-        lastProcessed[conta._id] = new Date(0);
+      if (!conta?.mercadoLivre?.accessToken) {
+        console.log("❌ Sem access token");
+        continue;
       }
 
+      console.log("✅ Token encontrado");
+
+      const perguntas = await listarPerguntas(conta);
       let latestDate = lastProcessed[conta._id];
 
       for (const p of perguntas) {
