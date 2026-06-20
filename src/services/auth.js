@@ -49,11 +49,12 @@ async function trocarCodePorToken(code) {
       {
         $set: {
           nome: user.nickname,
-          "mercadoLivre.userId": user.id,
-          "mercadoLivre.accessToken": data.access_token,
-          "mercadoLivre.expiresAt": new Date(
-            Date.now() + data.expires_in * 1000,
-          ),
+          mercadoLivre: {
+            userId: user.id,
+            accessToken: data.access_token,
+            refreshToken: data.refresh_token,
+            expiresAt: new Date(Date.now() + data.expires_in * 1000),
+          },
         },
       },
       { upsert: true, new: true },
@@ -64,8 +65,7 @@ async function trocarCodePorToken(code) {
         { "mercadoLivre.userId": user.id },
         {
           $set: {
-            "mercadoLivre.refreshToken":
-              data.refresh_token || conta?.mercadoLivre?.refreshToken || null,
+            "mercadoLivre.refreshToken": data.refresh_token,
           },
         },
       );
