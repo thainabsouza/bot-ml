@@ -100,7 +100,7 @@ async function executarBot() {
     console.log("📦 Contas encontradas:", contas.length);
 
     for (const conta of contas) {
-      console.log("Conta:", conta._id);
+      console.log("ML:", JSON.stringify(conta.mercadoLivre, null, 2));
 
       console.log("Tem token?", !!conta?.mercadoLivre?.accessToken);
 
